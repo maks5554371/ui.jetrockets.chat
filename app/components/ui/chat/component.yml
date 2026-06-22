@@ -1,0 +1,255 @@
+name: Chat
+description: Composable chat component with message bubbles, avatars, typing indicator and an input footer. Auto-scrolls to the latest message and integrates with Turbo Streams for realtime updates.
+
+preview: |
+  <%= ui.chat class: "h-96" do %>
+    <%= ui.chat_messages do %>
+      <%= ui.chat_message position: :start do %>
+        <%= ui.avatar size: 8 %>
+        <%= ui.chat_bubble do %>
+          <%= ui.chat_author "Alice" %>
+          Hey! Did you get a chance to review the PR?
+          <%= ui.chat_time "10:30" %>
+        <% end %>
+      <% end %>
+      <%= ui.chat_message position: :end do %>
+        <%= ui.chat_bubble variant: :primary do %>
+          Just finished — looks great, merging now.
+          <%= ui.chat_time "10:32" %>
+        <% end %>
+      <% end %>
+      <%= ui.chat_message position: :start do %>
+        <%= ui.avatar size: 8 %>
+        <%= ui.chat_bubble do %>
+          <%= ui.chat_author "Alice" %>
+          Thanks! I'll deploy after lunch.
+          <%= ui.chat_time "10:33" %>
+        <% end %>
+      <% end %>
+      <%= ui.chat_message position: :start do %>
+        <%= ui.avatar size: 8 %>
+        <%= ui.chat_typing %>
+      <% end %>
+    <% end %>
+    <%= ui.chat_footer do %>
+      <%= form_with url: "#" do %>
+        <div class="flex items-end gap-2">
+          <%= text_area_tag :message, nil, rows: 1, placeholder: "Type a message…",
+                class: "flex-1 resize-none rounded-field border border-input bg-background px-3 py-2 text-sm min-h-10 max-h-32",
+                data: { controller: "textarea-autogrow", action: "keydown->chat#send" } %>
+          <%= ui.btn ui.icon("paper-airplane"), type: "submit", variant: :default, size: :icon_md %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+
+usage: |
+  <%= ui.chat do %>
+    <%= ui.chat_messages do %>
+      <%# Incoming message: avatar + author + time %>
+      <%= ui.chat_message position: :start do %>
+        <%= ui.avatar user: @user %>
+        <%= ui.chat_bubble do %>
+          <%= ui.chat_author "Alice" %>
+          Hello there!
+          <%= ui.chat_time "10:30" %>
+        <% end %>
+      <% end %>
+      <%# Outgoing message: primary bubble aligned to the right %>
+      <%= ui.chat_message position: :end do %>
+        <%= ui.chat_bubble variant: :primary do %>
+          How are you?
+          <%= ui.chat_time "10:31" %>
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= ui.chat_footer do %>
+      <%= form_with url: "#" do %>
+        <div class="flex items-end gap-2">
+          <%= text_area_tag :body, nil, rows: 1, placeholder: "Type a message…",
+                class: "flex-1 resize-none rounded-field border border-input bg-background px-3 py-2 text-sm min-h-10 max-h-32",
+                data: { controller: "textarea-autogrow", action: "keydown->chat#send" } %>
+          <%= ui.btn ui.icon("paper-airplane"), type: "submit", variant: :default, size: :icon_md %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+
+accepts_html_attributes: true
+
+content:
+  description: "chat_messages (with chat_message, chat_bubble, chat_author, chat_time, chat_typing) and chat_footer components."
+
+props:
+  - name: stream
+    type: String / Array
+    default: "nil"
+    description: When present, renders a `turbo_stream_from` subscription so the chat receives realtime broadcasts. Accepts the same arguments as `turbo_stream_from` (e.g. `[@room, :messages]`).
+
+  - name: class
+    type: String
+    default: "nil"
+    description: Additional CSS classes. The chat has a fixed height by default (h-[32rem]); override it here (e.g. "h-80", "h-full").
+
+slots:
+  - name: chat_messages
+    component: Ui::Chat::MessagesComponent
+    description: Scrollable container for messages. Acts as the Turbo Stream target for appended messages.
+    props:
+      - name: id
+        type: String
+        default: '"chat_messages"'
+        description: DOM id used as the target for Turbo Stream broadcasts (use `dom_id(@room, :messages)` for realtime).
+
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_message
+    component: Ui::Chat::MessageComponent
+    description: A single message row containing an avatar and a bubble.
+    props:
+      - name: position
+        type: Symbol
+        default: ":start"
+        options: ":start, :end"
+        description: Side of the conversation. Use :end for the current user's own messages (aligned right).
+
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_bubble
+    component: Ui::Chat::BubbleComponent
+    description: The message bubble holding the text, author and timestamp.
+    props:
+      - name: variant
+        type: Symbol
+        default: ":default"
+        options: ":default, :primary, :muted"
+        description: Visual style. :primary highlights the current user's messages with the brand color.
+
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_author
+    component: Ui::Chat::AuthorComponent
+    description: Author name displayed inside the bubble.
+    props:
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_time
+    component: Ui::Chat::TimeComponent
+    description: Timestamp displayed inside the bubble.
+    props:
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_typing
+    component: Ui::Chat::TypingComponent
+    description: Animated three-dot typing indicator.
+    props:
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+  - name: chat_footer
+    component: Ui::Chat::FooterComponent
+    description: Bordered input area at the bottom of the chat, typically holding a message form.
+    props:
+      - name: class
+        type: String
+        default: "nil"
+        description: Additional CSS classes.
+
+examples:
+  - name: Basic conversation
+    code: |
+      <%= ui.chat class: "h-96" do %>
+        <%= ui.chat_messages do %>
+          <%= ui.chat_message position: :start do %>
+            <%= ui.avatar size: 8 %>
+            <%= ui.chat_bubble do %>
+              <%= ui.chat_author "Alice" %>
+              Hey! Are we still on for the demo today?
+              <%= ui.chat_time "09:15" %>
+            <% end %>
+          <% end %>
+          <%= ui.chat_message position: :end do %>
+            <%= ui.chat_bubble variant: :primary do %>
+              Yes — 3pm works for me.
+              <%= ui.chat_time "09:18" %>
+            <% end %>
+          <% end %>
+          <%= ui.chat_message position: :start do %>
+            <%= ui.avatar size: 8 %>
+            <%= ui.chat_bubble do %>
+              <%= ui.chat_author "Alice" %>
+              Perfect, see you then!
+              <%= ui.chat_time "09:19" %>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+  - name: Bubble variants
+    code: |
+      <%= ui.chat class: "h-64" do %>
+        <%= ui.chat_messages do %>
+          <%= ui.chat_message position: :start do %>
+            <%= ui.chat_bubble variant: :default do %>Default bubble<% end %>
+          <% end %>
+          <%= ui.chat_message position: :start do %>
+            <%= ui.chat_bubble variant: :muted do %>Muted bubble<% end %>
+          <% end %>
+          <%= ui.chat_message position: :end do %>
+            <%= ui.chat_bubble variant: :primary do %>Primary bubble<% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+  - name: Typing indicator
+    code: |
+      <%= ui.chat class: "h-48" do %>
+        <%= ui.chat_messages do %>
+          <%= ui.chat_message position: :start do %>
+            <%= ui.avatar size: 8 %>
+            <%= ui.chat_typing %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+  - name: Realtime with Turbo Streams
+    preview: false
+    code: |
+      <%# Subscribe to the channel and target the messages container by id %>
+      <%= ui.chat stream: [@room, :messages] do %>
+        <%= ui.chat_messages id: dom_id(@room, :messages) do %>
+          <%= render @room.messages %>
+        <% end %>
+        <%= ui.chat_footer do %>
+          <%= form_with model: [@room, Message.new] do |f| %>
+            <div class="flex items-end gap-2">
+              <%= f.text_area :body, rows: 1, placeholder: "Type a message…",
+                    class: "flex-1 resize-none rounded-field border border-input bg-background px-3 py-2 text-sm min-h-10 max-h-32",
+                    data: { controller: "textarea-autogrow", action: "keydown->chat#send" } %>
+              <%= ui.btn ui.icon("paper-airplane"), type: "submit", variant: :default, size: :icon_md %>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <%# In the Message model, broadcast new messages to the same target: %>
+      <%# broadcast_append_to [room, :messages],
+      <%#   target: ActionView::RecordIdentifier.dom_id(room, :messages),
+      <%#   partial: "messages/message" %>
