@@ -16,7 +16,7 @@ class Ui::Chat::MessageComponent < ApplicationComponent
   def classes
     class_names(
       "chat__message",
-      "chat__message--#{@position}",
+      "chat__message-#{@position}",
       @options.delete(:class)
     )
   end

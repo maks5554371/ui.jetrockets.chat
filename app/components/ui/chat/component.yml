@@ -81,9 +81,9 @@ content:
   description: "chat_messages (with chat_message, chat_bubble, chat_author, chat_time, chat_typing) and chat_footer components."
 
 props:
-  - name: stream
-    type: String / Array
-    default: "nil"
+  - name: streams
+    type: Array
+    default: "[]"
     description: When present, renders a `turbo_stream_from` subscription so the chat receives realtime broadcasts. Accepts the same arguments as `turbo_stream_from` (e.g. `[@room, :messages]`).
 
   - name: class
@@ -233,7 +233,7 @@ examples:
     preview: false
     code: |
       <%# Subscribe to the channel and target the messages container by id %>
-      <%= ui.chat stream: [@room, :messages] do %>
+      <%= ui.chat streams: [@room, :messages] do %>
         <%= ui.chat_messages id: dom_id(@room, :messages) do %>
           <%= render @room.messages %>
         <% end %>

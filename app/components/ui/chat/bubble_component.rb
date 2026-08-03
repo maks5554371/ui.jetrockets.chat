@@ -16,7 +16,7 @@ class Ui::Chat::BubbleComponent < ApplicationComponent
   def classes
     class_names(
       "chat__bubble",
-      "chat__bubble--#{@variant}",
+      "chat__bubble-#{@variant}",
       @options.delete(:class)
     )
   end

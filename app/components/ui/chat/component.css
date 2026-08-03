@@ -15,11 +15,11 @@
     @apply flex items-end gap-2 max-w-[85%];
   }
 
-  .chat__message--start {
+  .chat__message-start {
     @apply self-start;
   }
 
-  .chat__message--end {
+  .chat__message-end {
     @apply self-end flex-row-reverse;
   }
 
@@ -28,23 +28,23 @@
     @apply flex flex-col gap-0.5 px-3 py-2 text-sm leading-snug rounded-2xl shadow-sm break-words min-w-[3rem];
   }
 
-  .chat__message--start .chat__bubble {
+  .chat__message-start .chat__bubble {
     @apply rounded-bl-sm;
   }
 
-  .chat__message--end .chat__bubble {
+  .chat__message-end .chat__bubble {
     @apply rounded-br-sm;
   }
 
-  .chat__bubble--default {
+  .chat__bubble-default {
     @apply bg-muted text-foreground;
   }
 
-  .chat__bubble--muted {
+  .chat__bubble-muted {
     @apply bg-background text-muted-foreground border border-border;
   }
 
-  .chat__bubble--primary {
+  .chat__bubble-primary {
     @apply bg-primary text-primary-foreground;
   }
 
