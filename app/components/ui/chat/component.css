@@ -48,6 +48,22 @@
     @apply bg-primary text-primary-foreground;
   }
 
+  /* Applied by the chat controller to messages authored by the current viewer.
+     Lets a broadcast ship one neutral rendering to every recipient: the author
+     and avatar are rendered for everyone and hidden for the viewer's own. */
+  .chat__message-own {
+    @apply self-end flex-row-reverse;
+  }
+
+  .chat__message-own .chat__bubble {
+    @apply bg-primary text-primary-foreground rounded-bl-2xl rounded-br-sm;
+  }
+
+  .chat__message-own > :not(.chat__bubble),
+  .chat__message-own .chat__author {
+    @apply hidden;
+  }
+
   /* Author and timestamp */
   .chat__author {
     @apply text-xs font-semibold opacity-90;

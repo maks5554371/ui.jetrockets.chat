@@ -1,6 +1,7 @@
 class Ui::Chat::Component < ApplicationComponent
-  def initialize(streams: [], **options)
+  def initialize(streams: [], current_user: nil, **options)
     @streams = Array(streams)
+    @current_user = current_user
     @options = options
   end
 
@@ -17,8 +18,13 @@ class Ui::Chat::Component < ApplicationComponent
     @options.merge(data: data_attributes)
   end
 
+  # `current_user` lets the controller align messages in the browser, so a
+  # realtime broadcast can send one neutral rendering to every recipient.
   def data_attributes
-    { controller: "chat" }.deep_merge(@options.fetch(:data, {}))
+    attributes = { controller: "chat" }
+    attributes[:chat_current_user_id_value] = @current_user.id if @current_user
+
+    attributes.deep_merge(@options.fetch(:data, {}))
   end
 
   def classes

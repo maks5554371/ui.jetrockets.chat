@@ -45,7 +45,9 @@ preview: |
 
 usage: |
   <%# app/views/rooms/show.html.erb %>
-  <%= ui.chat streams: [@room, :messages] do %>
+  <%# `current_user` on the chat plus `user_id` on each message is what lets the %>
+  <%# side be decided in the browser, so one broadcast serves every recipient. %>
+  <%= ui.chat streams: [@room, :messages], current_user: current_user do %>
     <%= ui.chat_messages id: dom_id(@room, :messages) do %>
       <%= render @room.messages %>
     <% end %>
@@ -62,13 +64,12 @@ usage: |
   <% end %>
 
   <%# app/views/messages/_message.html.erb %>
-  <%# One partial per message: reused by the view and by Turbo Stream broadcasts. %>
-  <%# `own` decides the side and the bubble color — there is no dedicated prop for it. %>
-  <% own = message.user == Current.user %>
-  <%= ui.chat_message id: dom_id(message), position: own ? :end : :start do %>
-    <%= ui.avatar user: message.user, size: 8 unless own %>
-    <%= ui.chat_bubble variant: own ? :primary : :default do %>
-      <%= ui.chat_author message.user.full_name unless own %>
+  <%# The same markup for everyone: always incoming, author and avatar rendered. %>
+  <%# The viewer's own messages are flipped to the right by the chat controller. %>
+  <%= ui.chat_message id: dom_id(message), user_id: message.user_id do %>
+    <%= ui.avatar user: message.user, size: 8 %>
+    <%= ui.chat_bubble do %>
+      <%= ui.chat_author message.user.full_name %>
       <%= message.body %>
       <%= ui.chat_time l(message.created_at, format: :short) %>
     <% end %>
@@ -84,6 +85,11 @@ props:
     type: Array
     default: "[]"
     description: When present, renders a `turbo_stream_from` subscription so the chat receives realtime broadcasts. Accepts the same arguments as `turbo_stream_from` (e.g. `[@room, :messages]`).
+
+  - name: current_user
+    type: Object
+    default: "nil"
+    description: The viewer. Combined with `user_id` on each message, the chat controller aligns the viewer's own messages in the browser, so a Turbo Stream broadcast can send identical markup to every recipient. Only needs an `id`.
 
   - name: class
     type: String
@@ -109,6 +115,11 @@ slots:
     component: Ui::Chat::MessageComponent
     description: A single message row containing an avatar and a bubble.
     props:
+      - name: user_id
+        type: Integer
+        default: "nil"
+        description: Author of the message. Set it for realtime chats and pass `current_user` to the chat — the side is then resolved in the browser and `position` is ignored for the viewer's own messages. Leave it out when the server already knows the side and sets `position`.
+
       - name: position
         type: Symbol
         default: ":start"
@@ -201,6 +212,36 @@ examples:
         <% end %>
       <% end %>
 
+  - name: Aligned in the browser
+    code: |
+      <%# Same markup for every message: incoming side, avatar and author. %>
+      <%# `current_user` + `user_id` let the chat controller flip the viewer's %>
+      <%# own messages to the right, so a broadcast can serve every recipient. %>
+      <% user_record = Struct.new(:id, :full_name, :avatar, keyword_init: true) %>
+      <% message_record = Struct.new(:user, :body, :time, keyword_init: true) %>
+      <% alice = user_record.new(id: 1, full_name: "Alice Cooper") %>
+      <% viewer = user_record.new(id: 2, full_name: "Bob Dylan") %>
+      <% messages = [
+           message_record.new(user: alice, body: "Deploy is out, anything left on your side?", time: "16:40"),
+           message_record.new(user: viewer, body: "Nothing — I'm closing the ticket.", time: "16:41"),
+           message_record.new(user: alice, body: "Great, thanks!", time: "16:42")
+         ] %>
+
+      <%= ui.chat class: "h-96", current_user: viewer do %>
+        <%= ui.chat_messages do %>
+          <% messages.each do |message| %>
+            <%= ui.chat_message user_id: message.user.id do %>
+              <%= ui.avatar user: message.user, size: 8 %>
+              <%= ui.chat_bubble do %>
+                <%= ui.chat_author message.user.full_name %>
+                <%= message.body %>
+                <%= ui.chat_time message.time %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
   - name: Bubble variants
     code: |
       <%= ui.chat class: "h-64" do %>
@@ -231,8 +272,8 @@ examples:
   - name: Realtime with Turbo Streams
     preview: false
     code: |
-      <%# Subscribe to the channel and target the messages container by id %>
-      <%= ui.chat streams: [@room, :messages] do %>
+      <%# app/views/rooms/show.html.erb %>
+      <%= ui.chat streams: [@room, :messages], current_user: current_user do %>
         <%= ui.chat_messages id: dom_id(@room, :messages) do %>
           <%= render @room.messages %>
         <% end %>
@@ -248,7 +289,14 @@ examples:
         <% end %>
       <% end %>
 
-      <%# In the Message model, broadcast new messages to the same target: %>
-      <%# broadcast_append_to [room, :messages],
-      <%#   target: ActionView::RecordIdentifier.dom_id(room, :messages),
-      <%#   partial: "messages/message" %>
+      <%#
+        # app/models/message.rb
+        # One broadcast for the whole room: the markup is the same for everyone,
+        # and each browser flips the viewer's own messages to the right.
+        after_create_commit -> {
+          broadcast_append_later_to [room, :messages],
+            target: ActionView::RecordIdentifier.dom_id(room, :messages),
+            partial: "messages/message",
+            locals: { message: self }
+        }
+      %>

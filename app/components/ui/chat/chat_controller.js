@@ -5,7 +5,10 @@ import { stimulus } from '~/init'
 // but does not yank the viewport if the user has scrolled up to read history.
 export default class ChatController extends Controller {
   static targets = ['messages']
-  static values = { threshold: { type: Number, default: 100 } }
+  static values = {
+    threshold: { type: Number, default: 100 },
+    currentUserId: String
+  }
 
   connect () {
     this.pinned = true
@@ -16,6 +19,7 @@ export default class ChatController extends Controller {
       this.observer.observe(this.messagesTarget, { childList: true })
     }
 
+    this.#markOwnMessages()
     this.#scrollToBottom()
   }
 
@@ -43,9 +47,27 @@ export default class ChatController extends Controller {
 
   #handleMutation = (mutations) => {
     const added = mutations.some((mutation) => mutation.addedNodes.length > 0)
-    if (added && this.pinned) {
+    if (!added) return
+
+    this.#markOwnMessages()
+    if (this.pinned) {
       this.#scrollToBottom()
     }
+  }
+
+  // Broadcast messages arrive rendered the same way for everyone, so the side
+  // is decided here by comparing the author against the viewer.
+  #markOwnMessages () {
+    if (!this.hasMessagesTarget || !this.currentUserIdValue) return
+
+    this.messagesTarget
+      .querySelectorAll('.chat__message[data-user-id]')
+      .forEach((message) => {
+        message.classList.toggle(
+          'chat__message-own',
+          message.dataset.userId === this.currentUserIdValue
+        )
+      })
   }
 
   #isNearBottom () {
