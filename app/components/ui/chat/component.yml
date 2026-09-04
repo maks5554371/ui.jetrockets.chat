@@ -44,34 +44,33 @@ preview: |
   <% end %>
 
 usage: |
-  <%= ui.chat do %>
-    <%= ui.chat_messages do %>
-      <%# Incoming message: avatar + author + time %>
-      <%= ui.chat_message position: :start do %>
-        <%= ui.avatar user: @user %>
-        <%= ui.chat_bubble do %>
-          <%= ui.chat_author "Alice" %>
-          Hello there!
-          <%= ui.chat_time "10:30" %>
-        <% end %>
-      <% end %>
-      <%# Outgoing message: primary bubble aligned to the right %>
-      <%= ui.chat_message position: :end do %>
-        <%= ui.chat_bubble variant: :primary do %>
-          How are you?
-          <%= ui.chat_time "10:31" %>
-        <% end %>
-      <% end %>
+  <%# app/views/rooms/show.html.erb %>
+  <%= ui.chat streams: [@room, :messages] do %>
+    <%= ui.chat_messages id: dom_id(@room, :messages) do %>
+      <%= render @room.messages %>
     <% end %>
     <%= ui.chat_footer do %>
-      <%= form_with url: "#" do %>
+      <%= form_with model: [@room, Message.new] do |f| %>
         <div class="flex items-end gap-2">
-          <%= text_area_tag :body, nil, rows: 1, placeholder: "Type a message…",
+          <%= f.text_area :body, rows: 1, placeholder: "Type a message…",
                 class: "flex-1 resize-none rounded-field border border-input bg-background px-3 py-2 text-sm min-h-10 max-h-32",
                 data: { controller: "textarea-autogrow", action: "keydown->chat#send" } %>
           <%= ui.btn ui.icon("paper-airplane"), type: "submit", variant: :default, size: :icon_md %>
         </div>
       <% end %>
+    <% end %>
+  <% end %>
+
+  <%# app/views/messages/_message.html.erb %>
+  <%# One partial per message: reused by the view and by Turbo Stream broadcasts. %>
+  <%# `own` decides the side and the bubble color — there is no dedicated prop for it. %>
+  <% own = message.user == Current.user %>
+  <%= ui.chat_message id: dom_id(message), position: own ? :end : :start do %>
+    <%= ui.avatar user: message.user, size: 8 unless own %>
+    <%= ui.chat_bubble variant: own ? :primary : :default do %>
+      <%= ui.chat_author message.user.full_name unless own %>
+      <%= message.body %>
+      <%= ui.chat_time l(message.created_at, format: :short) %>
     <% end %>
   <% end %>
 
@@ -173,30 +172,30 @@ slots:
         description: Additional CSS classes.
 
 examples:
-  - name: Basic conversation
+  - name: Rendering a collection
     code: |
+      <%# Stand-ins for real records — in your app these come from the database. %>
+      <% user_record = Struct.new(:full_name, :avatar, keyword_init: true) %>
+      <% message_record = Struct.new(:user, :body, :time, keyword_init: true) %>
+      <% alice = user_record.new(full_name: "Alice Cooper") %>
+      <% current_user = user_record.new(full_name: "Bob Dylan") %>
+      <% messages = [
+           message_record.new(user: alice, body: "Hey! Are we still on for the demo today?", time: "09:15"),
+           message_record.new(user: current_user, body: "Yes — 3pm works for me.", time: "09:18"),
+           message_record.new(user: alice, body: "Perfect, see you then!", time: "09:19")
+         ] %>
+
       <%= ui.chat class: "h-96" do %>
         <%= ui.chat_messages do %>
-          <%= ui.chat_message position: :start do %>
-            <%= ui.avatar size: 8 %>
-            <%= ui.chat_bubble do %>
-              <%= ui.chat_author "Alice" %>
-              Hey! Are we still on for the demo today?
-              <%= ui.chat_time "09:15" %>
-            <% end %>
-          <% end %>
-          <%= ui.chat_message position: :end do %>
-            <%= ui.chat_bubble variant: :primary do %>
-              Yes — 3pm works for me.
-              <%= ui.chat_time "09:18" %>
-            <% end %>
-          <% end %>
-          <%= ui.chat_message position: :start do %>
-            <%= ui.avatar size: 8 %>
-            <%= ui.chat_bubble do %>
-              <%= ui.chat_author "Alice" %>
-              Perfect, see you then!
-              <%= ui.chat_time "09:19" %>
+          <% messages.each do |message| %>
+            <% own = message.user == current_user %>
+            <%= ui.chat_message position: own ? :end : :start do %>
+              <%= ui.avatar user: message.user, size: 8 unless own %>
+              <%= ui.chat_bubble variant: own ? :primary : :default do %>
+                <%= ui.chat_author message.user.full_name unless own %>
+                <%= message.body %>
+                <%= ui.chat_time message.time %>
+              <% end %>
             <% end %>
           <% end %>
         <% end %>
